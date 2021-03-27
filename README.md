@@ -110,4 +110,5 @@ There is an easier way to debug for beginners with free Visual Studio Code:
 
 ##Contribution
 Feel free to contribute into this project. New tasks and katas are welcome.
+My lab 3 solution is [here](https://www.github.com/emanu11mix/js-assignments)
 
