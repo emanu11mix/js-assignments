@@ -34,7 +34,34 @@
  *
  */
 function parseBankAccount(bankAccount) {
-    throw new Error('Not implemented');
+    bankAccount = bankAccount.replace(/\n/gm,"");
+ 
+    function separateSymbolsForOneNumber(str, j) {
+        var lineLength = 27;
+        return str.substr(j*3, 3) + str.substr(j*3 + lineLength, 3) + str.substr(j*3 + 2*lineLength, 3) ;
+    }
+    
+    var num, out  = '';
+    for (var j = 0; j < 9; j++) {
+        var str = separateSymbolsForOneNumber(bankAccount, j); 
+        
+        if (str[1] !== '_') {
+            if (str[3] === '|') num = 4;
+                else num = 1; }
+            else if (str[7] !== '_') num = 7
+                 else if (str[3] !== '|') {
+                        if(str[6] == '|') num = 2
+                            else num = 3
+                        } else if(str[5] !== '|') {
+                                if(str[6] !== '|') num=5
+                                    else num = 6
+                                } else if (str[6] === '|') { 
+                                    if(str[4] === '_') num = 8
+                                        else num = 0 }
+                                    else num = 9;
+        out += num;
+    }
+    return Number(out);
 }
 
 
@@ -63,7 +90,16 @@ function parseBankAccount(bankAccount) {
  *                                                                                                'characters.'
  */
 function* wrapText(text, columns) {
-    throw new Error('Not implemented');
+    while (text) {
+        var cursor = columns;
+
+        if (text.length > cursor)
+            while (text[cursor] != " ")
+                cursor--;
+        
+        yield text.slice(0, cursor);
+        text = text.slice(cursor + 1);
+    }    
 }
 
 
@@ -98,9 +134,107 @@ const PokerRank = {
     OnePair: 1,
     HighCard: 0
 }
+function PokerTools() {
+      
+    function returnOne(char, hand, suitOrRank) {
+        hand = hand.map(x => x.replace('10', '1'));
+        return hand.reduce((prev, cur) => prev + ((cur[suitOrRank] === char) ? 1 : 0), 0);
+    }    
+        
+    this.returnSuits = function(hand) {
+        return {'♥' : returnOne('♥', hand, 1),
+                '♦' : returnOne('♦', hand, 1),
+                '♠' : returnOne('♠', hand, 1),
+                '♣' : returnOne('♣', hand, 1)}    
+    }
+    
+    this.returnRanks = function(hand) {
+        return {'A' : returnOne('A', hand, 0),
+                '2' : returnOne('2', hand, 0),
+                '3' : returnOne('3', hand, 0),
+                '4' : returnOne('4', hand, 0),
+                '5' : returnOne('5', hand, 0),
+                '6' : returnOne('6', hand, 0),
+                '7' : returnOne('7', hand, 0),
+                '8' : returnOne('8', hand, 0),
+                '9' : returnOne('9', hand, 0),
+                '1' : returnOne('1', hand, 0),
+                'J' : returnOne('J', hand, 0),
+                'Q' : returnOne('Q', hand, 0),
+                'K' : returnOne('K', hand, 0)}
+    }
+    
+    function getCardValue(a, AceAsLow) {
+        if (!a) return 0;
+        if (a[0] === 'A') return AceAsLow ? 1 : 14;
+        if (a[0] === '1') return 10;
+        if (a[0] === 'J') return 11;
+        if (a[0] === 'Q') return 12;
+        if (a[0] === 'K') return 13;
+        return a[0];
+    }
+            
+    function sortForStraight(hand, AceAsLow) {
+        return hand.sort(function(a, b){
+            return getCardValue(a, AceAsLow) - getCardValue(b, AceAsLow)
+        })
+    }
+    
+    this.isStraight = function(hand) {
+        hand = sortForStraight(hand, true);
+        var val1 = hand.every((x,i,hand) =>
+            + getCardValue(hand[i], true) + 1 === + ( getCardValue(hand[i + 1], true) || 1 + + getCardValue(hand[i], true) )
+            );
+        
+        hand = sortForStraight(hand, false);
+        var val2 = hand.every((x,i,hand) => 
+            + getCardValue(hand[i], false) + 1 === + ( getCardValue(hand[i + 1], false) || 1 + + getCardValue(hand[i], false) )
+            );
+        return val1 || val2;
+    }
+}
 
 function getPokerHandRank(hand) {
-    throw new Error('Not implemented');
+  var PT = new PokerTools();
+  var arrayOfPokerRanks = [];
+  var suits = PT.returnSuits(hand);
+  var ranks = PT.returnRanks(hand);
+  var straight = PT.isStraight(hand);
+
+  for(var key in suits) {
+      if (suits[key] === 5)
+          arrayOfPokerRanks.push(5);    
+      if ( straight && suits[key] === 5)
+          arrayOfPokerRanks.push(8)    
+  }
+  
+  if (straight)
+      arrayOfPokerRanks.push(4);    
+          
+  var b =0;
+  for(var key in ranks) {
+      if (ranks[key] === 2)
+          arrayOfPokerRanks.push(1);    
+      if (ranks[key] === 3)
+          arrayOfPokerRanks.push(3);   
+      if (ranks[key] === 4)
+          arrayOfPokerRanks.push(7);   
+      
+      if (ranks[key] === 2) b += 2;
+      if (ranks[key] === 3) b += 3;          
+  }
+
+  if (b == 4)
+      arrayOfPokerRanks.push(2);      
+  if (b == 5)
+      arrayOfPokerRanks.push(6);      
+  
+  var numberOfRank;
+  if (!arrayOfPokerRanks.length)
+        numberOfRank = 0               
+     else
+        numberOfRank = Math.max.apply(null, arrayOfPokerRanks);
+  return numberOfRank;
 }
 
 
@@ -134,8 +268,85 @@ function getPokerHandRank(hand) {
  *    '|             |\n'+              '+-----+\n'           '+-------------+\n'
  *    '+-------------+\n'
  */
+
+function HandleRectangles() {
+
+    this.reduceToMatrix = function(figure) {
+        var fig = figure.slice(), 
+            n = fig.indexOf('\n') + 1,
+            m = fig.length / n,
+            matr = Array(m).fill([]).map(x => Array(n).fill(0)), 
+            i = 0,
+            j = 0;       
+      
+        for(var count = 0; count < n*m; count++, i++) {
+           if (fig[count] === '\n') {
+               j++;
+               i = i - n;
+           }
+           if (fig[count] === '+')
+               matr[j][i] = 1;
+           if (fig[count] === '-' || fig[count] === '|')
+               matr[j][i] = 2
+        }
+        return matr;
+    }
+    
+    this.findRectangle = function(arr, i, j) {
+         if (arr[j][i] === 1) {
+            var obj = isRectangle(arr, i, j);
+            if (obj)
+                return formRectangle(i, j, obj.width, obj. height); 
+         }
+   } 
+   
+   function isRectangle(arr, i, j) {
+        var w, h;
+        var m = arr.length,
+            n= arr[0].length;
+          
+          w = i + 1;
+          while (w < n) { 
+            
+            while (arr[j][w] === 2 && w < n)
+                w++;
+
+            h = j + 1;
+            while (h < m && arr[h][i] === 2)
+                h++;
+        
+            if ( h < m && arr[h][w] === 1 && 
+                    (arr[h-1][w] === 2 || arr[h-1][w] === 1) )
+                        return { width: w, height: h };
+            
+            if(w === i + 1)
+                break;
+            w++
+          }
+        return false;
+   }
+   
+   function formRectangle(a, b, c, d) {
+        return '+' + '-'.repeat(c - a - 1) + '+' + '\n' +
+                ('|' + ' '.repeat(c - a - 1) + '|' + '\n').repeat(d - b - 1) +
+                  '+' + '-'.repeat(c - a - 1) + '+' + '\n';
+   }
+   
+}
+
 function* getFigureRectangles(figure) {
-   throw new Error('Not implemented');
+ 
+   var hr = new HandleRectangles();
+   var arr = hr.reduceToMatrix(figure);
+   var m = arr.length,
+       n= arr[0].length; 
+   for(var j = 0; j < m; j++) {      
+       for(var i = 0; i < n; i++) {   
+            var val = hr.findRectangle(arr, i, j);
+            if (val)
+                yield val;
+       }
+   }
 }
 
 

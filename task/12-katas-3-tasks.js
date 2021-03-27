@@ -2,8 +2,7 @@
 
 /**
  * Returns true if word occurrs in the specified word snaking puzzle.
- * Each words can be constructed using "snake" path inside a grid with top, left, right and bottom directions.
- * Each char can be used only once ("snake" should not cross itself).
+ * Each words can be constructed using "snake" path inside a grid with top, left, right and bottom directions
  *
  * @param {array} puzzle
  * @param {array} searchStr
@@ -28,7 +27,73 @@
  *   'NULL'      => false 
  */
 function findStringInSnakingPuzzle(puzzle, searchStr) {
-    throw new Error('Not implemented');
+    
+    function findFirstLetters(puzzle, symbol) {
+      var arr = [];
+      puzzle.forEach((x,i) => {
+          var k = 0;
+          while(k < x.length) {
+              if (x[k] === symbol)
+                  arr.push({row: i, col: k})
+              k++
+          }
+      });  
+      return arr;
+    }
+    
+    function isSnakeCrossItself(path) {
+        return path.filter((x, i, path) => path.indexOf(x) == i).length === path.length;
+    }
+    
+    function uniqueIndex(a, b) {
+        return Math.pow(2, a) * Math.pow(3, b);    
+    }
+    
+    function search(puzzle, row, col, searchStr, k, path) {
+
+        while( k < searchStr.length ) {
+            var testDown =  (row !== puzzle.length - 1) 
+            var testUp = (row !== 0);
+            
+            if ( puzzle[row][col + 1] === searchStr[k] ) {
+                k++;
+                col = col + 1;
+                path.push(uniqueIndex(row, col));
+                return search(puzzle, row, col, searchStr, k, path)
+            } else if (puzzle[row][col - 1] === searchStr[k] ) {
+                k++
+                col = col - 1;
+                path.push(uniqueIndex(row, col));
+                return search(puzzle, row, col, searchStr, k, path)
+            } else if ( testDown && puzzle[row + 1][col] === searchStr[k]) {
+                k++
+                row = row + 1;
+                path.push(uniqueIndex(row, col));
+                return search(puzzle, row, col, searchStr, k, path)
+            } else if ( testUp && puzzle[row - 1][col] === searchStr[k] ) {
+                k++
+                row = row - 1;
+                path.push(uniqueIndex(row, col));
+                return search(puzzle, row, col, searchStr, k, path)
+            }
+              else 
+                return false;
+        }
+        return isSnakeCrossItself(path)
+    }
+ 
+    
+    var firstLetters = findFirstLetters(puzzle, searchStr[0]);
+    
+    for(var j = 0; j < firstLetters.length; j++) {
+        var value = [];
+        value.push(uniqueIndex(firstLetters[j].row, firstLetters[j].col)); 
+
+        if ( search(puzzle, firstLetters[j].row, firstLetters[j].col, searchStr, 1, value) )
+            return true;
+    }
+    return false;
+    
 }
 
 
@@ -45,7 +110,38 @@ function findStringInSnakingPuzzle(puzzle, searchStr) {
  *    'abc' => 'abc','acb','bac','bca','cab','cba'
  */
 function* getPermutations(chars) {
-    throw new Error('Not implemented');
+  // Johnson -Trotter algorithm
+  
+  var arr = chars.split(''),
+     n = arr.length,
+     d = Array(n).fill(-1);   
+  
+  function swap(a) {
+    var b = a + d[a];
+    var tmp = arr[a],   tmpd = d[a];
+    arr[a] = arr[b];    d[a] = d[b];
+    arr[b] = tmp;       d[b] = tmpd;
+  }
+  
+  function isMobile(i) {
+     return ( d[i] < 0 && arr[i - 1] < arr[i] ) || ( d[i] > 0 && arr[i + 1] < arr[i] ) ;
+  }
+  
+  while (true) {
+    yield arr.join('');
+    
+    var id = -1;                    
+    for (var i = 0; i < n; i++)
+       if (isMobile(i) && ((id == -1) || (arr[i] > arr[id])) )
+         id = i;
+  
+    if (id == -1) break;
+    for (var i = 0; i < n; i++) 
+      if (arr[i] > arr[id]) 
+        d[i] = (d[i] > 0) ? -1 : 1 
+    
+    swap(id)
+  }
 }
 
 
@@ -65,7 +161,13 @@ function* getPermutations(chars) {
  *    [ 1, 6, 5, 10, 8, 7 ] => 18  (buy at 1,6,5 and sell all at 10)
  */
 function getMostProfitFromStockQuotes(quotes) {
-    throw new Error('Not implemented');
+    var maxRight = quotes[quotes.length - 1];
+
+    return quotes.reduceRight(function(prev, cur, i) {
+                        
+        maxRight = Math.max(maxRight, cur);
+        return prev + (maxRight - cur);    
+    }, 0); 
 }
 
 
@@ -87,17 +189,81 @@ function UrlShortener() {
     this.urlAllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"+
                            "abcdefghijklmnopqrstuvwxyz"+
                            "0123456789-_.~!*'();:@&=+$,/?#[]";
+    this.SEVEN = 7;
+    this.THIRTEEN = 13;   
+
+    var allChars = this.urlAllowedChars;
+    this.myMap1 = new Map();
+    
+    for(var i = 0; i < allChars.length; i++) { 
+        let e = i.toString(2);  
+        e = addZerosBefore(e, this.SEVEN);
+        this.myMap1.set(allChars[i], e);
+    }
+    this.myMap1.set(' ', (allChars.length).toString(2));
+    
+    this.myMap2 = new Map();   
+    const START = 14000;              
+    
+    for(var i = START; i < START + Math.pow(2, this.THIRTEEN); i++) { 
+        let e = (i - START).toString(2);      
+        e = addZerosBefore(e, this.THIRTEEN);
+        this.myMap2.set(String.fromCharCode(i), e);
+    }
+    
+    function addZerosBefore(e, bit) {
+        while(e.length < bit)        
+            e = '0' + e;
+        return e;
+    }
 }
 
 UrlShortener.prototype = {
-
-    encode: function(url) {
-        throw new Error('Not implemented');
-    },
+   
+   encode: function(url) {
     
-    decode: function(code) {
-        throw new Error('Not implemented');
-    } 
+    var numberOfRequiredSpaces = this.THIRTEEN*(parseInt(url.length/this.THIRTEEN) + 1) - url.length;
+    url = url + ' '.repeat(numberOfRequiredSpaces);
+    
+    var str = '';
+    for(var i = 0; i < url.length; i++)
+        str += this.myMap1.get(url[i]);
+
+    var arr = str.split('');
+    var out = '';
+    
+    while(arr.length) {
+
+        for(var k of this.myMap2.keys())
+            if(this.myMap2.get(k) === arr.slice(0, this.THIRTEEN).join('')) {
+                out += k;
+                arr.splice(0, this.THIRTEEN)
+            }
+    }
+    
+    return out
+   },
+    
+   decode: function(code) {
+       var str = '';
+       for (var i = 0; i < code.length; i++) {
+           str += this.myMap2.get(code[i]);
+       }
+      
+       var arr = str.split('');
+       var out = ''; 
+            
+       while(arr.length) {
+     
+            for(var k of this.myMap1.keys())
+                if(this.myMap1.get(k) === arr.slice(0, this.SEVEN).join('')) {
+                    out += k;
+                    arr.splice(0, this.SEVEN)
+                }
+       }
+
+       return out.trim();
+   }       
 }
 
 

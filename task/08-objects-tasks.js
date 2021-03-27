@@ -23,9 +23,13 @@
  *    console.log(r.getArea());   // => 200
  */
 function Rectangle(width, height) {
-    throw new Error('Not implemented');
+    this.width = width;
+    this.height = height;
 }
 
+Rectangle.prototype.getArea = function () {
+    return this.width * this.height;
+}
 
 /**
  * Returns the JSON representation of specified object
@@ -38,7 +42,7 @@ function Rectangle(width, height) {
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
  */
 function getJSON(obj) {
-    throw new Error('Not implemented');
+    return JSON.stringify(obj);
 }
 
 
@@ -54,7 +58,10 @@ function getJSON(obj) {
  *
  */
 function fromJSON(proto, json) {
-    throw new Error('Not implemented');
+    
+    var object = JSON.parse(json);
+    object.__proto__ = proto;
+    return object;
 }
 
 
@@ -105,37 +112,126 @@ function fromJSON(proto, json) {
  *
  *  For more examples see unit tests.
  */
+ const cssSelectorBuilder = {
 
-const cssSelectorBuilder = {
+        element: function (value) {
+            return new CssSelector().element(value);
+        },
 
-    element: function(value) {
-        throw new Error('Not implemented');
-    },
+        id: function (value) {
+            return new CssSelector().id(value);
+        },
 
-    id: function(value) {
-        throw new Error('Not implemented');
-    },
+        class: function (value) {
+            return new CssSelector().class(value);
+        },
 
-    class: function(value) {
-        throw new Error('Not implemented');
-    },
+        attr: function (value) {
+            return new CssSelector().attr(value);
+        },
 
-    attr: function(value) {
-        throw new Error('Not implemented');
-    },
+        pseudoClass: function (value) {
+            return new CssSelector().pseudoClass(value);
+        },
 
-    pseudoClass: function(value) {
-        throw new Error('Not implemented');
-    },
+        pseudoElement: function (value) {
+            return new CssSelector().pseudoElement(value);
+        },
 
-    pseudoElement: function(value) {
-        throw new Error('Not implemented');
-    },
+        combine: function (selector1, combinator, selector2) {
+            return new CssSelector().combine(selector1, combinator, selector2);
+        }
+    };
+    
+    function CssSelectorCombined(selector) {
+        this.stringify = function() {
+            return selector;
+        }
+    }
+        
+    function CssSelector() {
+        
+        const tooManyPartsInsideSelectorMsg = 'Element, id and pseudo-element should not occur more then one time inside the selector';
+        const wrongOrderMsg = 'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element';
+        
+        var _element, _id, _class, _attr, _pseudoClass, _pseudoElement;
 
-    combine: function(selector1, combinator, selector2) {
-        throw new Error('Not implemented');
-    },
-};
+        function checkIsNotSetted(values) {
+            if (values.some(v => v !== undefined))
+                throw new Error(wrongOrderMsg);
+        }
+
+        function addElementToArray(arr, elem) {
+            if (arr) {
+                arr.push(elem);
+                return arr;
+            }
+            return [elem];
+        }
+
+        this.element = function (value) {
+            if (this._element)
+                throw new Error(tooManyPartsInsideSelectorMsg);
+            checkIsNotSetted([this._id, this._class, this._attr, this._pseudoClass, this._pseudoElement]);
+            this._element = value;
+            return this;
+        };
+
+        this.id = function (value) {
+            if (this._id)
+                throw new Error(tooManyPartsInsideSelectorMsg);
+            checkIsNotSetted([this._class, this._attr, this._pseudoClass, this._pseudoElement]);
+            this._id = value;
+            return this;
+        };
+
+        this.class = function (value) {
+            checkIsNotSetted([this._attr, this._pseudoClass, this._pseudoElement]);
+            this._class = addElementToArray(this._class, value);
+            return this;
+        };
+
+        this.attr = function (value) {
+            checkIsNotSetted([this._pseudoClass, this._pseudoElement]);
+            this._attr = addElementToArray(this._attr, value);
+            return this;
+        };
+
+        this.pseudoClass = function (value) {
+            checkIsNotSetted([this._pseudoElement]);
+            this._pseudoClass = addElementToArray(this._pseudoClass, value);
+            return this;
+        };
+
+        this.pseudoElement = function (value) {
+            if (this._pseudoElement)
+                throw new Error(tooManyPartsInsideSelectorMsg);
+            this._pseudoElement = value;
+            return this;
+        };
+
+        this.stringify = function () {
+            let result = '';
+            if (this._element)
+                result += this._element;
+            if (this._id)
+                result += `#${this._id}`;
+            if (this._class)
+                result += this._class.map(e => `.${e}`).join('');
+            if (this._attr)
+                result += this._attr.map(e => `[${e}]`).join('');
+            if (this._pseudoClass)
+                result += this._pseudoClass.map(e => `:${e}`).join('');
+            if (this._pseudoElement)
+                result += `::${this._pseudoElement}`;
+            return result;
+        };
+
+        this.combine = function (selector1, combinator, selector2) {
+            return new CssSelectorCombined(`${selector1.stringify()} ${combinator} ${selector2.stringify()}`);
+        }
+
+    }
 
 
 module.exports = {
